@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="Platzi API Test Suite" verbose="1">
+
+    <!-- ADD ALLURE LISTENER -->
+    <listeners>
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+
+    <!-- Authentication Tests -->
+    <test name="Authentication Module Tests">
+        <classes>
+            <class name="com.platzi.tests.auth.AuthTests"/>
+        </classes>
+    </test>
+
+    <!-- Products Tests -->
+    <test name="Products Module Tests">
+        <classes>
+            <class name="com.platzi.tests.products.ProductCRUDTests"/>
+            <class name="com.platzi.tests.products.ProductFilterTests"/>
+            <class name="com.platzi.tests.products.ProductNegativeTests"/>
+        </classes>
+    </test>
+
+    <!-- Users Tests -->
+    <test name="Users Module Tests">
+        <classes>
+            <class name="com.platzi.tests.users.UserCRUDTests"/>
+            <class name="com.platzi.tests.users.UserNegativeTests"/>
+        </classes>
+    </test>
+
+    <!-- Categories Tests -->
+    <test name="Categories Module Tests">
+        <classes>
+            <class name="com.platzi.tests.categories.CategoryCRUDTests"/>
+            <class name="com.platzi.tests.categories.CategoryRelatedTests"/>
+        </classes>
+    </test>
+
+</suite>
