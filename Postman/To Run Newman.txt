@@ -1,0 +1,9 @@
+Run Newman:
+
+	newman run collection.json -e environment.json
+
+
+
+Create Reporte:
+
+	newman run collection.json -e environment.json -r htmlextra --reporter-htmlextra-export Report.html
