@@ -33,8 +33,6 @@
 │   │   └── DELETE User
 │   │   ├── GET All Users after Delete
 │   └── 📁 Negative Tests
-│       ├── POST Create Email Availability
-│       ├── POST Create with Duplicate Email
 │       ├── POST Create with Invalid Data
 │       └── GET User with Invalid  ID
 │
@@ -48,4 +46,5 @@
     │   └── DELETE Category
     │   ├── GET All Categories after Delete
     └── 📁 Related Operations
+
         └── GET Products by Category
