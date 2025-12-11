@@ -1,0 +1,154 @@
+{
+	"id": "3da2b0c7-bf73-42e7-9b89-ecc04d17d25b",
+	"name": "Platzi Fake Store API",
+	"values": [
+		{
+			"key": "API_URL",
+			"value": "https://api.escuelajs.co",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "test_email",
+			"value": "john@mail.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "test_password",
+			"value": "changeme",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "request_timestamp",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "current_user_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "current_user_email",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "current_user_name",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "current_user_role",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "first_product_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "total_products_before_operations",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "category_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "first_user_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "total_users_before_operations",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "first_category_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "total_categories_before_operations",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "category_timestamp",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "unique_category_name",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "created_category_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "created_category_name",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "product_timestamp",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "created_product_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "created_product_title",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		}
+	],
+	"color": null,
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-12-07T09:32:25.502Z",
+	"_postman_exported_using": "Postman/11.74.5"
+}

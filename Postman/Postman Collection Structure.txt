@@ -1,0 +1,50 @@
+📁 Platzi API Testing
+│
+├── 📁 Authentication
+│   ├── POST Login
+│   ├── GET User Profile
+│   └── POST Refresh Token
+│
+├── 📁 Products
+│   ├── 📁 CRUD Operations
+│   │   ├── GET All Products
+│   │   ├── POST Create Product
+│   │   ├── GET Created Product by ID 
+│   │   ├── PUT Update Product
+│   │   ├── GET Updated Product by ID
+│   │   └── DELETE Product
+│   │   ├── GET All Products After Delete
+│   ├── 📁 Search & Filter
+│   │   ├── GET Products with Pagination
+│   │   ├── GET Products by Price Range
+│   │   └── GET Products by Category
+│   └── 📁 Negative Tests
+│       ├── GET  Product with Invalid ID 
+│       ├── POST Create Product with Missing Fields
+│       └── PUT Update Non-existent Product
+│
+├── 📁 Users
+│   ├── 📁 CRUD Operations
+│   │   ├── GET All Users
+│   │   ├── POST Create User
+│   │   ├── GET Created User by ID
+│   │   ├── PUT Update User
+│   │   ├── GET Updated User by ID
+│   │   └── DELETE User
+│   │   ├── GET All Users after Delete
+│   └── 📁 Negative Tests
+│       ├── POST Create with Invalid Data
+│       └── GET User with Invalid  ID
+│
+└── 📁 Categories
+    ├── 📁 CRUD Operations
+    │   ├── GET All Categories
+    │   ├── POST Create Category
+    │   ├── GET Created Category by ID
+    │   ├── PUT Update Category
+    │   ├── GET Updated Category by ID
+    │   └── DELETE Category
+    │   ├── GET All Categories after Delete
+    └── 📁 Related Operations
+
+        └── GET Products by Category

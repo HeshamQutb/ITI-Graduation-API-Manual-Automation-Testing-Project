@@ -1,0 +1,3828 @@
+{
+	"info": {
+		"_postman_id": "3e219759-a9f6-472b-972b-d80060b1107a",
+		"name": "Platzi Store API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28415249"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "POST Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// ===== TEST 1: Status Code Validation =====",
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"// ===== TEST 2: Response Time Validation =====",
+									"pm.test(\"Response time is less than 2000ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"// Check if response is successful before parsing",
+									"const isSuccessful = pm.response.code === 201;",
+									"let jsonData;",
+									"",
+									"try {",
+									"    jsonData = pm.response.json();",
+									"} catch (e) {",
+									"    console.error(\"Failed to parse response as JSON:\", e);",
+									"    jsonData = {};",
+									"}",
+									"",
+									"// ===== TEST 3: Response Structure Validation =====",
+									"pm.test(\"Response contains required fields\", function () {",
+									"    if (isSuccessful) {",
+									"        pm.expect(jsonData).to.be.an(\"object\");",
+									"        pm.expect(jsonData).to.have.property(\"access_token\");",
+									"        pm.expect(jsonData).to.have.property(\"refresh_token\");",
+									"    } else {",
+									"        pm.expect(jsonData).to.be.an(\"object\");",
+									"        console.log(\"Non-successful response - skipping token field validation\");",
+									"    }",
+									"});",
+									"",
+									"// ===== TEST 4: Access Token Validation =====",
+									"pm.test(\"Access token is valid\", function () {",
+									"    if (isSuccessful && jsonData.access_token) {",
+									"        pm.expect(jsonData.access_token).to.be.a(\"string\");",
+									"        pm.expect(jsonData.access_token.length).to.be.above(20);",
+									"        pm.expect(jsonData.access_token).to.not.be.empty;",
+									"    } else {",
+									"        this.skip();",
+									"    }",
+									"});",
+									"",
+									"// ===== TEST 5: Refresh Token Validation =====",
+									"pm.test(\"Refresh token is valid\", function () {",
+									"    if (isSuccessful && jsonData.refresh_token) {",
+									"        pm.expect(jsonData.refresh_token).to.be.a(\"string\");",
+									"        pm.expect(jsonData.refresh_token.length).to.be.above(20);",
+									"        pm.expect(jsonData.refresh_token).to.not.be.empty;",
+									"    } else {",
+									"        this.skip();",
+									"    }",
+									"});",
+									"",
+									"// ===== TEST 6: JWT Format Validation =====",
+									"pm.test(\"Access token follows JWT format (3 parts separated by dots)\", function () {",
+									"    if (isSuccessful && jsonData.access_token) {",
+									"        const jwtPattern = /^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$/;",
+									"        pm.expect(jsonData.access_token).to.match(jwtPattern);",
+									"        ",
+									"        // Verify token has 3 parts",
+									"        const tokenParts = jsonData.access_token.split('.');",
+									"        pm.expect(tokenParts.length).to.be.at.least(2);",
+									"    } else {",
+									"        this.skip();",
+									"    }",
+									"});",
+									"",
+									"// ===== TEST 7: Refresh Token Format Validation =====",
+									"pm.test(\"Refresh token follows JWT format\", function () {",
+									"    if (isSuccessful && jsonData.refresh_token) {",
+									"        const jwtPattern = /^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$/;",
+									"        pm.expect(jsonData.refresh_token).to.match(jwtPattern);",
+									"    } else {",
+									"        this.skip();",
+									"    }",
+									"});",
+									"",
+									"// ===== TEST 8: Content-Type Header Validation =====",
+									"pm.test(\"Content-Type header is application/json\", function () {",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+									"});",
+									"",
+									"// ===== TOKEN STORAGE (Only on Successful Login) =====",
+									"if (isSuccessful && jsonData.access_token && jsonData.refresh_token) {",
+									"    // Store tokens in environment variables",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);",
+									"    pm.environment.set(\"refresh_token\", jsonData.refresh_token);",
+									"    ",
+									"    console.log(\"=== Login Successful ===\");",
+									"    console.log(\"Access token stored in environment\");",
+									"    console.log(\"Refresh token stored in environment\");",
+									"    console.log(\"Timestamp: \" + new Date().toISOString());",
+									"} else {",
+									"    console.log(\"=== Login Failed ===\");",
+									"    console.log(\"Status Code: \" + pm.response.code);",
+									"    console.log(\"Response: \" + JSON.stringify(jsonData));",
+									"    console.log(\"Tokens not stored due to unsuccessful response\");",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Clear any existing tokens before fresh login\r",
+									"pm.environment.unset(\"access_token\");\r",
+									"pm.environment.unset(\"refresh_token\");\r",
+									"\r",
+									"// Log the login attempt\r",
+									"console.log(\"=== Attempting Login ===\");\r",
+									"console.log(\"Email: \" + pm.environment.get(\"test_email\"));\r",
+									"console.log(\"Timestamp: \" + new Date().toISOString());"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"{{test_email}}\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/api/v1/auth/login",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();\r",
+									"\r",
+									"// ===== TEST 1: Status Code Validation =====\r",
+									"pm.test(\"Status code is 200 OK\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 2: Response Time Validation =====\r",
+									"pm.test(\"Response time is less than 2000ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 3: User Profile Structure =====\r",
+									"pm.test(\"Response contains all required user fields\", function () {\r",
+									"    pm.expect(jsonData).to.be.an(\"object\");\r",
+									"    pm.expect(jsonData).to.have.property(\"id\");\r",
+									"    pm.expect(jsonData).to.have.property(\"email\");\r",
+									"    pm.expect(jsonData).to.have.property(\"name\");\r",
+									"    pm.expect(jsonData).to.have.property(\"role\");\r",
+									"    pm.expect(jsonData).to.have.property(\"avatar\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 4: ID Field Validation =====\r",
+									"pm.test(\"User ID is valid\", function () {\r",
+									"    pm.expect(jsonData.id).to.be.a(\"number\");\r",
+									"    pm.expect(jsonData.id).to.be.above(0);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 5: Email Field Validation =====\r",
+									"pm.test(\"Email is valid format\", function () {\r",
+									"    pm.expect(jsonData.email).to.be.a(\"string\");\r",
+									"    pm.expect(jsonData.email).to.not.be.empty;\r",
+									"    \r",
+									"    // Validate email format\r",
+									"    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+									"    pm.expect(jsonData.email).to.match(emailPattern);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 6: Email Matches Test Credentials =====\r",
+									"pm.test(\"Email matches authenticated user\", function () {\r",
+									"    const expectedEmail = pm.environment.get(\"test_email\");\r",
+									"    pm.expect(jsonData.email).to.equal(expectedEmail);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 7: Name Field Validation =====\r",
+									"pm.test(\"Name field is present and valid\", function () {\r",
+									"    pm.expect(jsonData.name).to.be.a(\"string\");\r",
+									"    pm.expect(jsonData.name).to.not.be.empty;\r",
+									"    pm.expect(jsonData.name.length).to.be.above(0);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 7: Role Field Validation =====\r",
+									"pm.test(\"Role is valid\", function () {\r",
+									"    pm.expect(jsonData.role).to.be.a(\"string\");\r",
+									"    const validRoles = [\"customer\", \"admin\"];\r",
+									"    pm.expect(validRoles).to.include(jsonData.role);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 8: Avatar Field Validation =====\r",
+									"pm.test(\"Avatar URL is present\", function () {\r",
+									"    pm.expect(jsonData.avatar).to.be.a(\"string\");\r",
+									"    pm.expect(jsonData.avatar).to.not.be.empty;\r",
+									"    \r",
+									"    // Check if it's a URL format\r",
+									"    const urlPattern = /^https?:\\/\\/.+/;\r",
+									"    pm.expect(jsonData.avatar).to.match(urlPattern);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 9: Creation Date Validation =====\r",
+									"pm.test(\"Creation date is present and valid\", function () {\r",
+									"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+									"    pm.expect(jsonData.creationAt).to.be.a(\"string\");\r",
+									"    \r",
+									"    // Verify it's a valid date\r",
+									"    const date = new Date(jsonData.creationAt);\r",
+									"    pm.expect(date.toString()).to.not.equal(\"Invalid Date\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 10: Update Date Validation =====\r",
+									"pm.test(\"Update date is present and valid\", function () {\r",
+									"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+									"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+									"    \r",
+									"    // Verify it's a valid date\r",
+									"    const date = new Date(jsonData.updatedAt);\r",
+									"    pm.expect(date.toString()).to.not.equal(\"Invalid Date\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 12: Content-Type Header =====\r",
+									"pm.test(\"Content-Type is application/json\", function () {\r",
+									"    pm.response.to.have.header(\"Content-Type\");\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 13: Response Body Not Empty =====\r",
+									"pm.test(\"Response body is substantial\", function () {\r",
+									"    pm.expect(pm.response.text()).to.have.lengthOf.above(50);\r",
+									"});\r",
+									"\r",
+									"// ===== Save user data to environment for later use =====\r",
+									"if (pm.response.code === 200) {\r",
+									"    pm.environment.set(\"current_user_id\", jsonData.id);\r",
+									"    pm.environment.set(\"current_user_email\", jsonData.email);\r",
+									"    pm.environment.set(\"current_user_name\", jsonData.name);\r",
+									"    pm.environment.set(\"current_user_role\", jsonData.role);\r",
+									"    \r",
+									"    console.log(\"✓ User profile data saved to environment\");\r",
+									"    console.log(\"User ID: \" + jsonData.id);\r",
+									"    console.log(\"User Name: \" + jsonData.name);\r",
+									"    console.log(\"User Role: \" + jsonData.role);\r",
+									"}\r",
+									"\r",
+									"// ===== Log profile fetch success =====\r",
+									"console.log(\"=== Profile Fetch Successful ===\");\r",
+									"console.log(\"Response Time: \" + pm.response.responseTime + \"ms\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Verify token exists before making request\r",
+									"const token = pm.environment.get(\"access_token\");\r",
+									"\r",
+									"if (!token || token === \"\") {\r",
+									"    console.error(\"❌ ERROR: No access token found!\");\r",
+									"    console.log(\"Please run the Login request first to obtain a token.\");\r",
+									"} else {\r",
+									"    console.log(\"=== Fetching User Profile ===\");\r",
+									"    console.log(\"Token exists: Yes\");\r",
+									"    console.log(\"Token preview: \" + token.substring(0, 20) + \"...\");\r",
+									"}\r",
+									"\r",
+									"// Add request timestamp\r",
+									"pm.environment.set(\"request_timestamp\", new Date().toISOString());"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/api/v1/auth/profile",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "POST Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();\r",
+									"\r",
+									"// ===== TEST 1: Status Code Validation =====\r",
+									"pm.test(\"Status code is 201 Created\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 2: Response Time Validation =====\r",
+									"pm.test(\"Response time is less than 2000ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 3: Response Structure =====\r",
+									"pm.test(\"Response contains new tokens\", function () {\r",
+									"    pm.expect(jsonData).to.be.an(\"object\");\r",
+									"    pm.expect(jsonData).to.have.property(\"access_token\");\r",
+									"    pm.expect(jsonData).to.have.property(\"refresh_token\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 4: New Access Token Validation =====\r",
+									"pm.test(\"New access token is valid\", function () {\r",
+									"    pm.expect(jsonData.access_token).to.be.a(\"string\");\r",
+									"    pm.expect(jsonData.access_token.length).to.be.above(20);\r",
+									"    pm.expect(jsonData.access_token).to.not.be.empty;\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 5: New Refresh Token Validation =====\r",
+									"pm.test(\"New refresh token is valid\", function () {\r",
+									"    pm.expect(jsonData.refresh_token).to.be.a(\"string\");\r",
+									"    pm.expect(jsonData.refresh_token.length).to.be.above(20);\r",
+									"    pm.expect(jsonData.refresh_token).to.not.be.empty;\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 6: JWT Format for Access Token =====\r",
+									"pm.test(\"New access token follows JWT format\", function () {\r",
+									"    const jwtPattern = /^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$/;\r",
+									"    pm.expect(jsonData.access_token).to.match(jwtPattern);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 7: JWT Format for Refresh Token =====\r",
+									"pm.test(\"New refresh token follows JWT format\", function () {\r",
+									"    const jwtPattern = /^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$/;\r",
+									"    pm.expect(jsonData.refresh_token).to.match(jwtPattern);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 8: Tokens are Different from Each Other =====\r",
+									"pm.test(\"New access token and refresh token are different\", function () {\r",
+									"    pm.expect(jsonData.access_token).to.not.equal(jsonData.refresh_token);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 9: New Access Token is Different from Old =====\r",
+									"pm.test(\"New access token is different from old token\", function () {\r",
+									"    const oldToken = pm.environment.get(\"old_access_token\");\r",
+									"    if (oldToken) {\r",
+									"        pm.expect(jsonData.access_token).to.not.equal(oldToken);\r",
+									"    }\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 10: Content-Type Header =====\r",
+									"pm.test(\"Content-Type is application/json\", function () {\r",
+									"    pm.response.to.have.header(\"Content-Type\");\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 11: Response Body Not Empty =====\r",
+									"pm.test(\"Response body has substantial content\", function () {\r",
+									"    pm.expect(pm.response.text()).to.have.lengthOf.above(50);\r",
+									"});\r",
+									"\r",
+									"// ===== TEST 12: No Sensitive Data in Response =====\r",
+									"pm.test(\"No password or sensitive data exposed\", function () {\r",
+									"    const responseString = JSON.stringify(jsonData).toLowerCase();\r",
+									"    pm.expect(responseString).to.not.include(\"password\");\r",
+									"});\r",
+									"\r",
+									"// ===== Update environment with new tokens =====\r",
+									"if (pm.response.code === 201 && jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"    console.log(\"✓ New access token saved to environment\");\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 201 && jsonData.refresh_token) {\r",
+									"    pm.environment.set(\"refresh_token\", jsonData.refresh_token);\r",
+									"    console.log(\"✓ New refresh token saved to environment\");\r",
+									"}\r",
+									"\r",
+									"// ===== Clean up old token =====\r",
+									"pm.environment.unset(\"old_access_token\");\r",
+									"\r",
+									"// ===== Log token refresh success =====\r",
+									"console.log(\"=== Token Refresh Successful ===\");\r",
+									"console.log(\"New Access Token (first 20 chars): \" + jsonData.access_token.substring(0, 20) + \"...\");\r",
+									"console.log(\"New Refresh Token (first 20 chars): \" + jsonData.refresh_token.substring(0, 20) + \"...\");\r",
+									"console.log(\"Response Time: \" + pm.response.responseTime + \"ms\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Verify refresh token exists\r",
+									"const refreshToken = pm.environment.get(\"refresh_token\");\r",
+									"\r",
+									"if (!refreshToken || refreshToken === \"\") {\r",
+									"    console.error(\"❌ ERROR: No refresh token found!\");\r",
+									"    console.log(\"Please run the Login request first to obtain a refresh token.\");\r",
+									"} else {\r",
+									"    console.log(\"=== Refreshing Access Token ===\");\r",
+									"    console.log(\"Refresh token exists: Yes\");\r",
+									"    console.log(\"Token preview: \" + refreshToken.substring(0, 20) + \"...\");\r",
+									"}\r",
+									"\r",
+									"// Save old access token for comparison\r",
+									"const oldAccessToken = pm.environment.get(\"access_token\");\r",
+									"pm.environment.set(\"old_access_token\", oldAccessToken);\r",
+									"\r",
+									"console.log(\"Old access token saved for comparison\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"{{refresh_token}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/api/v1/auth/refresh-token",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"refresh-token"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "CRUD Operations",
+					"item": [
+						{
+							"name": "GET All Products",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Array Contains Products =====\r",
+											"pm.test(\"Array contains products (not empty)\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Each Product Has Required Fields =====\r",
+											"pm.test(\"Each product has all required fields\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product).to.have.property(\"id\");\r",
+											"        pm.expect(product).to.have.property(\"title\");\r",
+											"        pm.expect(product).to.have.property(\"price\");\r",
+											"        pm.expect(product).to.have.property(\"description\");\r",
+											"        pm.expect(product).to.have.property(\"images\");\r",
+											"        pm.expect(product).to.have.property(\"category\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: ID Validation =====\r",
+											"pm.test(\"All product IDs are numbers and positive\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.id).to.be.a(\"number\");\r",
+											"        pm.expect(product.id).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Title Validation =====\r",
+											"pm.test(\"All product titles are non-empty strings\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.title).to.be.a(\"string\");\r",
+											"        pm.expect(product.title.length).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Price Validation =====\r",
+											"pm.test(\"All prices are positive numbers\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.price).to.be.a(\"number\");\r",
+											"        pm.expect(product.price).to.be.at.least(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Description Validation =====\r",
+											"pm.test(\"All descriptions are strings\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.description).to.be.a(\"string\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Images Array Validation =====\r",
+											"pm.test(\"All products have at least one image\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.images).to.be.an(\"array\");\r",
+											"        pm.expect(product.images.length).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 11: Category Structure =====\r",
+											"pm.test(\"All products have valid category objects\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.category).to.be.an(\"object\");\r",
+											"        pm.expect(product.category).to.have.property(\"id\");\r",
+											"        pm.expect(product.category).to.have.property(\"name\");\r",
+											"        pm.expect(product.category.id).to.be.a(\"number\");\r",
+											"        pm.expect(product.category.name).to.be.a(\"string\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 12: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save first product ID, category ID and total count for reference\r",
+											"if (jsonData.length > 0) {\r",
+											"    pm.environment.set(\"first_product_id\", jsonData[0].id);\r",
+											"    pm.environment.set(\"category_id\", jsonData[0].category.id);\r",
+											"    pm.environment.set(\"total_products_before_operations\", jsonData.length);\r",
+											"    console.log(\"✓ Total products: \" + jsonData.length);\r",
+											"    console.log(\"✓ First product Category ID: \" + jsonData[0].category.id);\r",
+											"    console.log(\"✓ First product ID: \" + jsonData[0].id);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Fetching All Products ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create Product",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 201 Created\", function () {\r",
+											"    pm.response.to.have.status(201);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Product ID Generated =====\r",
+											"pm.test(\"Product ID is generated\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData.id).to.be.a(\"number\");\r",
+											"    pm.expect(jsonData.id).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Title Matches Request =====\r",
+											"pm.test(\"Product title is set correctly\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"title\");\r",
+											"    pm.expect(jsonData.title).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.title).to.include(\"Test Product\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Price Matches Request =====\r",
+											"pm.test(\"Product price matches request\", function () {\r",
+											"    pm.expect(jsonData.price).to.equal(299);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Description Set =====\r",
+											"pm.test(\"Description is set correctly\", function () {\r",
+											"    pm.expect(jsonData.description).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.description).to.include(\"test product\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Category Object Present =====\r",
+											"pm.test(\"Category object is present and valid\", function () {\r",
+											"    const categoryId = Number(pm.environment.get(\"category_id\"));\r",
+											"\r",
+											"    pm.expect(jsonData.category).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData.category).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData.category).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData.category.id).to.equal(categoryId);\r",
+											"});\r",
+											"\r",
+											"\r",
+											"// ===== TEST 8: Images Array Present =====\r",
+											"pm.test(\"Images array is present and not empty\", function () {\r",
+											"    pm.expect(jsonData.images).to.be.an(\"array\");\r",
+											"    pm.expect(jsonData.images.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Creation Timestamp =====\r",
+											"pm.test(\"Creation timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+											"    pm.expect(jsonData.creationAt).to.be.a(\"string\");\r",
+											"    \r",
+											"    const date = new Date(jsonData.creationAt);\r",
+											"    pm.expect(date.toString()).to.not.equal(\"Invalid Date\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Update Timestamp =====\r",
+											"pm.test(\"Update timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 11: Schema Validation =====\r",
+											"pm.test(\"Response schema is valid\", function () {\r",
+											"    const schema = {\r",
+											"        type: \"object\",\r",
+											"        required: [\"id\", \"title\", \"price\", \"description\", \"category\", \"images\"],\r",
+											"        properties: {\r",
+											"            id: { type: \"number\" },\r",
+											"            title: { type: \"string\" },\r",
+											"            price: { type: \"number\" },\r",
+											"            description: { type: \"string\" },\r",
+											"            category: { type: \"object\" },\r",
+											"            images: { type: \"array\" }\r",
+											"        }\r",
+											"    };\r",
+											"    pm.response.to.have.jsonSchema(schema);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 12: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save created product ID for next operations\r",
+											"if (pm.response.code === 201 && jsonData.id) {\r",
+											"    pm.environment.set(\"created_product_id\", jsonData.id);\r",
+											"    pm.environment.set(\"created_product_title\", jsonData.title);\r",
+											"    console.log(\"✓ Product created successfully!\");\r",
+											"    console.log(\"✓ Product ID: \" + jsonData.id);\r",
+											"    console.log(\"✓ Product Title: \" + jsonData.title);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Creating New Product ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());\r",
+											"\r",
+											"// Generate unique product title\r",
+											"const timestamp = Date.now();\r",
+											"pm.environment.set(\"product_timestamp\", timestamp);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"title\": \"Test Product - {{$timestamp}}\",\r\n    \"price\": 299,\r\n    \"description\": \"This is a test product created via Postman automation\",\r\n    \"categoryId\": {{category_id}},\r\n    \"images\": [\r\n        \"https://placeimg.com/640/480/any\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Product by ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_product_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Product ID Matches =====\r",
+											"pm.test(\"Product ID matches the created product\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Product Title Verification =====\r",
+											"pm.test(\"Product title is correct\", function () {\r",
+											"    const expectedTitle = pm.environment.get(\"created_product_title\");\r",
+											"    pm.expect(jsonData.title).to.equal(expectedTitle);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: All Fields Present =====\r",
+											"pm.test(\"All product fields are present\", function () {\r",
+											"    pm.expect(jsonData).to.have.all.keys(\r",
+											"        \"id\", \"title\", \"slug\", \"price\", \"description\", \r",
+											"        \"images\", \"category\", \"creationAt\", \"updatedAt\"\r",
+											"    );\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Price Verification =====\r",
+											"pm.test(\"Price is correct\", function () {\r",
+											"    pm.expect(jsonData.price).to.equal(299);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Response is Object =====\r",
+											"pm.test(\"Response is a single product object\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.not.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Category Details =====\r",
+											"pm.test(\"Category details are complete\", function () {\r",
+											"    pm.expect(jsonData.category).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData.category).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData.category).to.have.property(\"image\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Images Array =====\r",
+											"pm.test(\"Images array contains URLs\", function () {\r",
+											"    pm.expect(jsonData.images).to.be.an(\"array\");\r",
+											"    jsonData.images.forEach(image => {\r",
+											"        pm.expect(image).to.be.a(\"string\");\r",
+											"        pm.expect(image).to.match(/^https?:\\/\\/.+/);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Product retrieved successfully\");\r",
+											"console.log(\"✓ Product details verified\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const productId = pm.environment.get(\"created_product_id\");\r",
+											"\r",
+											"if (!productId) {\r",
+											"    console.error(\"❌ No product ID found! Please create a product first.\");\r",
+											"} else {\r",
+											"    console.log(\"=== Fetching Created Product ===\");\r",
+											"    console.log(\"Product ID: \" + productId);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/{{created_product_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"{{created_product_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Update Product",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();",
+											"const expectedId = parseInt(pm.environment.get(\"created_product_id\"));",
+											"",
+											"// ===== TEST 1: Status Code =====",
+											"pm.test(\"Status code is 200 OK\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// ===== TEST 2: Response Time =====",
+											"pm.test(\"Response time is less than 3000ms\", function () {",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+											"});",
+											"",
+											"// ===== TEST 3: Product ID Unchanged =====",
+											"pm.test(\"Product ID remains the same\", function () {",
+											"    pm.expect(jsonData.id).to.equal(expectedId);",
+											"});",
+											"",
+											"// ===== TEST 4: Title Updated =====",
+											"pm.test(\"Product title was updated\", function () {",
+											"    const oldTitle = pm.environment.get(\"old_product_title\");",
+											"    pm.expect(jsonData.title).to.not.equal(oldTitle);",
+											"    pm.expect(jsonData.title).to.include(\"Updated Test Product\");",
+											"});",
+											"",
+											"// ===== TEST 5: Price Updated =====",
+											"pm.test(\"Product price was updated to 399\", function () {",
+											"    pm.expect(jsonData.price).to.equal(399);",
+											"});",
+											"",
+											"// ===== TEST 6: Description Updated =====",
+											"pm.test(\"Description was updated\", function () {",
+											"    pm.expect(jsonData.description).to.include(\"updated\");",
+											"});",
+											"",
+											"// ===== TEST 7: Updated Timestamp Changed =====",
+											"pm.test(\"updatedAt timestamp is present\", function () {",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");",
+											"});",
+											"",
+											"// ===== TEST 8: Other Fields Preserved =====",
+											"pm.test(\"Category is preserved\", function () {",
+											"    const categoryId = Number(pm.environment.get(\"category_id\"));",
+											"",
+											"    pm.expect(jsonData.category).to.be.an(\"object\");",
+											"    pm.expect(jsonData.category.id).to.equal(categoryId);",
+											"});",
+											"",
+											"// ===== TEST 9: Images Preserved =====",
+											"pm.test(\"Images array is preserved\", function () {",
+											"    pm.expect(jsonData.images).to.be.an(\"array\");",
+											"    pm.expect(jsonData.images.length).to.be.above(0);",
+											"});",
+											"",
+											"// Update environment with new values",
+											"pm.environment.set(\"updated_product_title\", jsonData.title);",
+											"pm.environment.unset(\"old_product_title\");",
+											"",
+											"console.log(\"✓ Product updated successfully\");",
+											"console.log(\"✓ New Title: \" + jsonData.title);",
+											"console.log(\"✓ New Price: \" + jsonData.price);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const productId = pm.environment.get(\"created_product_id\");\r",
+											"const token = pm.environment.get(\"access_token\");\r",
+											"\r",
+											"if (!productId) {\r",
+											"    console.error(\"❌ No product ID found!\");\r",
+											"}\r",
+											"\r",
+											"console.log(\"=== Updating Product ===\");\r",
+											"console.log(\"Product ID: \" + productId);\r",
+											"\r",
+											"// Save old values for comparison\r",
+											"const oldTitle = pm.environment.get(\"created_product_title\");\r",
+											"pm.environment.set(\"old_product_title\", oldTitle);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"title\": \"Updated Test Product - {{$timestamp}}\",\r\n    \"price\": 399,\r\n    \"description\": \"This product has been updated via Postman automation\",\r\n    \"categoryId\": {{category_id}},\r\n    \"images\": [\r\n        \"https://placeimg.com/640/480/any\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/{{created_product_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"{{created_product_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Updated Product by ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_product_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Product ID Matches =====\r",
+											"pm.test(\"Product ID is correct\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Updated Title Persisted =====\r",
+											"pm.test(\"Updated title is persisted\", function () {\r",
+											"    const updatedTitle = pm.environment.get(\"updated_product_title\");\r",
+											"    pm.expect(jsonData.title).to.equal(updatedTitle);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Updated Price Persisted =====\r",
+											"pm.test(\"Updated price is persisted (399)\", function () {\r",
+											"    pm.expect(jsonData.price).to.equal(399);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Updated Description Persisted =====\r",
+											"pm.test(\"Updated description is persisted\", function () {\r",
+											"    pm.expect(jsonData.description).to.include(\"updated\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Verify Update Consistency =====\r",
+											"pm.test(\"Product data is consistent after update\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData).to.have.property(\"title\");\r",
+											"    pm.expect(jsonData).to.have.property(\"price\");\r",
+											"    pm.expect(jsonData).to.have.property(\"description\");\r",
+											"    pm.expect(jsonData).to.have.property(\"category\");\r",
+											"    pm.expect(jsonData).to.have.property(\"images\");\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Update verification successful\");\r",
+											"console.log(\"✓ All changes persisted correctly\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const productId = pm.environment.get(\"created_product_id\");\r",
+											"\r",
+											"console.log(\"=== Verifying Product Update ===\");\r",
+											"console.log(\"Product ID: \" + productId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/{{created_product_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"{{created_product_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DELETE Product",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deletion Confirmed =====\r",
+											"pm.test(\"Response confirms deletion (true)\", function () {\r",
+											"    pm.expect(jsonData).to.be.a(\"boolean\");\r",
+											"    pm.expect(jsonData).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Response Body Validation =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Product deleted successfully\");\r",
+											"console.log(\"✓ Product ID: \" + pm.environment.get(\"created_product_id\"));\r",
+											"\r",
+											"// Keep the ID for verification in next request"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const productId = pm.environment.get(\"created_product_id\");\r",
+											"const token = pm.environment.get(\"access_token\");\r",
+											"\r",
+											"if (!productId) {\r",
+											"    console.error(\"❌ No product ID found!\");\r",
+											"}\r",
+											"\r",
+											"\r",
+											"console.log(\"=== Deleting Product ===\");\r",
+											"console.log(\"Product ID to delete: \" + productId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/{{created_product_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"{{created_product_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Products After Delete",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const deletedProductId = parseInt(pm.environment.get(\"created_product_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deleted Product Not in List =====\r",
+											"pm.test(\"Deleted product is not in the list\", function () {\r",
+											"    const productExists = jsonData.some(product => product.id === deletedProductId);\r",
+											"    pm.expect(productExists).to.be.false;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Product Count Verification =====\r",
+											"pm.test(\"Product count is reduced\", function () {\r",
+											"    const currentCount = jsonData.length;\r",
+											"    console.log(\"Current product count: \" + currentCount);\r",
+											"    pm.expect(currentCount).to.be.a(\"number\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: List Still Contains Products =====\r",
+											"pm.test(\"Product list still contains other products\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Deletion verified - product removed from list\");\r",
+											"\r",
+											"// Save first product category ID for reference\r",
+											"if (jsonData.length > 0) {\r",
+											"    pm.environment.set(\"category_id\", jsonData[0].category.id);\r",
+											"    console.log(\"✓ First product Category ID: \" + jsonData[0].category.id);\r",
+											"}\r",
+											"\r",
+											"// Clean up environment variables\r",
+											"pm.environment.unset(\"created_product_id\");\r",
+											"pm.environment.unset(\"created_product_title\");\r",
+											"pm.environment.unset(\"updated_product_title\");\r",
+											"pm.environment.unset(\"product_timestamp\");\r",
+											"\r",
+											"console.log(\"✓ Environment variables cleaned up\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Verifying Product Deletion ===\");\r",
+											"console.log(\"Checking if deleted product is removed from list\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Search & Filter",
+					"item": [
+						{
+							"name": "GET Products with Pagination",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Pagination ===\");\r",
+											"console.log(\"Offset: 0, Limit: 10\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Limit is Respected =====\r",
+											"pm.test(\"Number of products does not exceed limit (10)\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.at.most(10);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Products Returned =====\r",
+											"pm.test(\"At least some products are returned\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Each Product is Valid =====\r",
+											"pm.test(\"Each product has required structure\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product).to.have.property(\"id\");\r",
+											"        pm.expect(product).to.have.property(\"title\");\r",
+											"        pm.expect(product).to.have.property(\"price\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Pagination Count Verification =====\r",
+											"pm.test(\"Returned count matches expectation\", function () {\r",
+											"    const count = jsonData.length;\r",
+											"    pm.expect(count).to.be.at.least(1);\r",
+											"    pm.expect(count).to.be.at.most(10);\r",
+											"    console.log(\"Products returned: \" + count);\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Pagination working correctly\");\r",
+											"console.log(\"✓ Products returned: \" + jsonData.length);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/?offset=0&limit=10",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									],
+									"query": [
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Products by Price Range",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Price Filter ===\");\r",
+											"console.log(\"Price range: 100 - 500\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const minPrice = 100;\r",
+											"const maxPrice = 500;\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: All Prices in Range =====\r",
+											"pm.test(\"All product prices are within specified range (100-500)\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.price).to.be.at.least(minPrice);\r",
+											"        pm.expect(product.price).to.be.at.most(maxPrice);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Price Data Type =====\r",
+											"pm.test(\"All prices are numbers\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.price).to.be.a(\"number\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Products Have Required Fields =====\r",
+											"pm.test(\"All products have required fields\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product).to.have.property(\"id\");\r",
+											"        pm.expect(product).to.have.property(\"title\");\r",
+											"        pm.expect(product).to.have.property(\"price\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Price filter working correctly\");\r",
+											"console.log(\"✓ Products in range: \" + jsonData.length);\r",
+											"\r",
+											"// Log price range for verification\r",
+											"if (jsonData.length > 0) {\r",
+											"    const prices = jsonData.map(p => p.price);\r",
+											"    console.log(\"Lowest price: \" + Math.min(...prices));\r",
+											"    console.log(\"Highest price: \" + Math.max(...prices));\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/?price_min=100&price_max=500",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									],
+									"query": [
+										{
+											"key": "price_min",
+											"value": "100"
+										},
+										{
+											"key": "price_max",
+											"value": "500"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Products by Category",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Category Filter ===\");\r",
+											"console.log(\"Category ID: 1\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedCategoryId = Number(pm.environment.get(\"category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: All Products Match Category =====\r",
+											"\r",
+											"\r",
+											"pm.test(\"All products belong to category \" + expectedCategoryId, function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.category).to.be.an(\"object\");\r",
+											"        pm.expect(product.category.id).to.equal(expectedCategoryId);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Category Structure =====\r",
+											"pm.test(\"All category objects have proper structure\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.category).to.have.property(\"id\");\r",
+											"        pm.expect(product.category).to.have.property(\"name\");\r",
+											"        pm.expect(product.category).to.have.property(\"image\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Products Returned =====\r",
+											"pm.test(\"At least one product is returned\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Category filter working correctly\");\r",
+											"console.log(\"✓ Products in category: \" + jsonData.length);\r",
+											"\r",
+											"if (jsonData.length > 0) {\r",
+											"    console.log(\"Category name: \" + jsonData[0].category.name);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/?categoryId={{category_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									],
+									"query": [
+										{
+											"key": "categoryId",
+											"value": "{{category_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Negative Tests",
+					"item": [
+						{
+							"name": "GET Product with Invalid ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// ===== TEST 1: Status Code is 404 =====\r",
+											"pm.test(\"Status code is 400 Not Found\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Error Response Structure =====\r",
+											"pm.test(\"Response contains error information\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.have.property(\"message\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Error Message Present =====\r",
+											"pm.test(\"Error message is descriptive\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.message).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.message.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Response is Not Empty =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Invalid ID handled correctly with 404\");\r",
+											"console.log(\"✓ Error message: \" + pm.response.json().message);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Invalid Product ID ===\");\r",
+											"console.log(\"Using ID: 999999 (should not exist)\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/999999",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"999999"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create Product with Missing Fields",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Error response contains message and error\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData).to.have.property(\"message\");\r",
+											"    pm.expect(jsonData.message).to.be.a(\"array\");\r",
+											"    pm.expect(jsonData).to.have.property(\"error\");\r",
+											"    pm.expect(jsonData.error).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Error identifies missing fields\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    const responseText = JSON.stringify(jsonData).toLowerCase();\r",
+											"    \r",
+											"    // Check if error mentions required fields\r",
+											"    const hasFieldError = responseText.includes(\"required\") ||\r",
+											"                         responseText.includes(\"missing\") ||\r",
+											"                         responseText.includes(\"must\");\r",
+											"    \r",
+											"    pm.expect(hasFieldError).to.be.true;\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"title\": \"New Product\",\r\n    \"price\": 10,\r\n    \"description\": \"A description\",\r\n    // \"categoryId\": 1,\r\n    \"images\": [\r\n        \"https://placehold.co/600x400\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Update Product Non-existent Product",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// ===== TEST 1: Status Code is 400 =====\r",
+											"pm.test(\"Status code is 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Error Response Structure =====\r",
+											"pm.test(\"Response contains error information\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.have.property(\"message\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Error Message is Array or String =====\r",
+											"pm.test(\"Error message describes missing fields\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    const message = jsonData.message;\r",
+											"    \r",
+											"    // Message could be string or array\r",
+											"    if (Array.isArray(message)) {\r",
+											"        pm.expect(message.length).to.be.above(0);\r",
+											"    } else {\r",
+											"        pm.expect(message).to.be.a(\"string\");\r",
+											"        pm.expect(message.length).to.be.above(0);\r",
+											"    }\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Error Mentions Required Fields =====\r",
+											"pm.test(\"Error indicates validation failure\", function () {\r",
+											"    const responseText = pm.response.text().toLowerCase();\r",
+											"    \r",
+											"    // Check if response mentions required/missing/validation\r",
+											"    const hasValidationError = \r",
+											"        responseText.includes(\"required\") ||\r",
+											"        responseText.includes(\"missing\") ||\r",
+											"        responseText.includes(\"must\") ||\r",
+											"        responseText.includes(\"price\") ||\r",
+											"        responseText.includes(\"category\");\r",
+											"    \r",
+											"    pm.expect(hasValidationError).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: No Product Created =====\r",
+											"pm.test(\"Response does not contain product ID\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    \r",
+											"    // If there's an ID in error response, it should be validation error\r",
+											"    if (jsonData.id) {\r",
+											"        pm.expect(pm.response.code).to.equal(400);\r",
+											"    }\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Missing fields validation working correctly\");\r",
+											"console.log(\"✓ Error response: \" + JSON.stringify(pm.response.json()));"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Product Creation with Missing Fields ===\");\r",
+											"console.log(\"Sending incomplete product data (only title)\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"title\": \"Incomplete Product\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/products/00",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"products",
+										"00"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "CRUD Operations",
+					"item": [
+						{
+							"name": "GET All Users",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Fetching All Users ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Array Contains Users =====\r",
+											"pm.test(\"Array contains users (not empty)\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Each User Has Required Fields =====\r",
+											"pm.test(\"Each user has all required fields\", function () {\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user).to.have.property(\"id\");\r",
+											"        pm.expect(user).to.have.property(\"email\");\r",
+											"        pm.expect(user).to.have.property(\"name\");\r",
+											"        pm.expect(user).to.have.property(\"role\");\r",
+											"        pm.expect(user).to.have.property(\"avatar\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: ID Validation =====\r",
+											"pm.test(\"All user IDs are numbers and positive\", function () {\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user.id).to.be.a(\"number\");\r",
+											"        pm.expect(user.id).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Email Validation =====\r",
+											"pm.test(\"All emails are valid format\", function () {\r",
+											"    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user.email).to.be.a(\"string\");\r",
+											"        pm.expect(user.email).to.match(emailPattern);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Name Validation =====\r",
+											"pm.test(\"All user names are non-empty strings\", function () {\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user.name).to.be.a(\"string\");\r",
+											"        pm.expect(user.name.length).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Role Validation =====\r",
+											"pm.test(\"All roles are valid\", function () {\r",
+											"    const validRoles = [\"customer\", \"admin\"];\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user.role).to.be.a(\"string\");\r",
+											"        pm.expect(validRoles).to.include(user.role);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save total count and first user for reference\r",
+											"if (jsonData.length > 0) {\r",
+											"    pm.environment.set(\"first_user_id\", jsonData[0].id);\r",
+											"    pm.environment.set(\"total_users_before_operations\", jsonData.length);\r",
+											"    console.log(\"✓ Total users: \" + jsonData.length);\r",
+											"    console.log(\"✓ First user ID: \" + jsonData[0].id);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create User",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Creating New User ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());\r",
+											"\r",
+											"// Generate unique email\r",
+											"const timestamp = Date.now();\r",
+											"const uniqueEmail = \"testuser\" + timestamp + \"@mail.com\";\r",
+											"pm.environment.set(\"unique_email\", uniqueEmail);\r",
+											"pm.environment.set(\"test_user_password\", \"testpass123\");\r",
+											"\r",
+											"console.log(\"Unique email: \" + uniqueEmail);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 201 Created\", function () {\r",
+											"    pm.response.to.have.status(201);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: User ID Generated =====\r",
+											"pm.test(\"User ID is generated\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData.id).to.be.a(\"number\");\r",
+											"    pm.expect(jsonData.id).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Name Matches Request =====\r",
+											"pm.test(\"User name is set correctly\", function () {\r",
+											"    pm.expect(jsonData.name).to.equal(\"Test User\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Email is Set =====\r",
+											"pm.test(\"Email is set correctly\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"email\");\r",
+											"    pm.expect(jsonData.email).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.email).to.include(\"testuser\");\r",
+											"    pm.expect(jsonData.email).to.include(\"@mail.com\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Email Format Validation =====\r",
+											"pm.test(\"Email has valid format\", function () {\r",
+											"    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+											"    pm.expect(jsonData.email).to.match(emailPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Role is Set =====\r",
+											"pm.test(\"User role is assigned\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"role\");\r",
+											"    pm.expect(jsonData.role).to.be.a(\"string\");\r",
+											"    const validRoles = [\"customer\", \"admin\"];\r",
+											"    pm.expect(validRoles).to.include(jsonData.role);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Avatar is Set =====\r",
+											"pm.test(\"Avatar URL is set\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"avatar\");\r",
+											"    pm.expect(jsonData.avatar).to.be.a(\"string\");\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.avatar).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"\r",
+											"\r",
+											"// ===== TEST 9: Creation Timestamp =====\r",
+											"pm.test(\"Creation timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+											"    pm.expect(jsonData.creationAt).to.be.a(\"string\");\r",
+											"    \r",
+											"    const date = new Date(jsonData.creationAt);\r",
+											"    pm.expect(date.toString()).to.not.equal(\"Invalid Date\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Update Timestamp =====\r",
+											"pm.test(\"Update timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 11: Schema Validation =====\r",
+											"pm.test(\"Response schema is valid\", function () {\r",
+											"    const schema = {\r",
+											"        type: \"object\",\r",
+											"        required: [\"id\", \"email\", \"name\", \"role\", \"avatar\"],\r",
+											"        properties: {\r",
+											"            id: { type: \"number\" },\r",
+											"            email: { type: \"string\" },\r",
+											"            name: { type: \"string\" },\r",
+											"            role: { type: \"string\" },\r",
+											"            avatar: { type: \"string\" }\r",
+											"        }\r",
+											"    };\r",
+											"    pm.response.to.have.jsonSchema(schema);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 12: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save created user ID and details\r",
+											"if (pm.response.code === 201 && jsonData.id) {\r",
+											"    pm.environment.set(\"created_user_id\", jsonData.id);\r",
+											"    pm.environment.set(\"created_user_name\", jsonData.name);\r",
+											"    pm.environment.set(\"created_user_email\", jsonData.email);\r",
+											"    console.log(\"✓ User created successfully!\");\r",
+											"    console.log(\"✓ User ID: \" + jsonData.id);\r",
+											"    console.log(\"✓ User Name: \" + jsonData.name);\r",
+											"    console.log(\"✓ User Email: \" + jsonData.email);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"name\": \"Test User\",\r\n    \"email\": \"testuser{{$timestamp}}@mail.com\",\r\n    \"password\": \"testpass123\",\r\n    \"avatar\": \"https://api.lorem.space/image/face?w=640&h=480\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET User by ID",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const userId = pm.environment.get(\"created_user_id\");\r",
+											"\r",
+											"console.log(\"=== Fetching Created User ===\");\r",
+											"console.log(\"User ID: \" + userId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_user_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: User ID Matches =====\r",
+											"pm.test(\"User ID matches the created user\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: User Name Verification =====\r",
+											"pm.test(\"User name is correct\", function () {\r",
+											"    const expectedName = pm.environment.get(\"created_user_name\");\r",
+											"    pm.expect(jsonData.name).to.equal(expectedName);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Email Verification =====\r",
+											"pm.test(\"Email is correct\", function () {\r",
+											"    const expectedEmail = pm.environment.get(\"created_user_email\");\r",
+											"    pm.expect(jsonData.email).to.equal(expectedEmail);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: All Fields Present =====\r",
+											"pm.test(\"All user fields are present\", function () {\r",
+											"    pm.expect(jsonData).to.have.all.keys(\r",
+											"        \"id\", \"email\", \"password\", \"name\", \"role\", \"avatar\", \r",
+											"        \"creationAt\", \"updatedAt\"\r",
+											"    );\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Response is Object =====\r",
+											"pm.test(\"Response is a single user object\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.not.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Role Details =====\r",
+											"pm.test(\"Role is valid\", function () {\r",
+											"    const validRoles = [\"customer\", \"admin\"];\r",
+											"    pm.expect(validRoles).to.include(jsonData.role);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Avatar URL Valid =====\r",
+											"pm.test(\"Avatar is a valid URL\", function () {\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.avatar).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"// // ===== TEST 10: No Password Exposure =====\r",
+											"// pm.test(\"Password is not exposed\", function () {\r",
+											"//     pm.expect(jsonData).to.not.have.property(\"password\");\r",
+											"// });\r",
+											"\r",
+											"console.log(\"✓ User retrieved successfully\");\r",
+											"console.log(\"✓ User details verified\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/{{created_user_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										"{{created_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Update User",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const userId = pm.environment.get(\"created_user_id\");\r",
+											"\r",
+											"console.log(\"=== Updating User ===\");\r",
+											"console.log(\"User ID: \" + userId);\r",
+											"\r",
+											"// Save old values for comparison\r",
+											"const oldName = pm.environment.get(\"created_user_name\");\r",
+											"const oldEmail = pm.environment.get(\"created_user_email\");\r",
+											"pm.environment.set(\"old_user_name\", oldName);\r",
+											"pm.environment.set(\"old_user_email\", oldEmail);\r",
+											"\r",
+											"// Generate unique updated email\r",
+											"const timestamp = Date.now();\r",
+											"const updatedEmail = \"updated\" + timestamp + \"@mail.com\";\r",
+											"pm.environment.set(\"updated_email\", updatedEmail);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_user_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: User ID Unchanged =====\r",
+											"pm.test(\"User ID remains the same\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Name Updated =====\r",
+											"pm.test(\"User name was updated\", function () {\r",
+											"    const oldName = pm.environment.get(\"old_user_name\");\r",
+											"    pm.expect(jsonData.name).to.not.equal(oldName);\r",
+											"    pm.expect(jsonData.name).to.equal(\"Updated Test User\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Email Updated =====\r",
+											"pm.test(\"User email was updated\", function () {\r",
+											"    const oldEmail = pm.environment.get(\"old_user_email\");\r",
+											"    pm.expect(jsonData.email).to.not.equal(oldEmail);\r",
+											"    pm.expect(jsonData.email).to.include(\"updated\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Email Format Valid =====\r",
+											"pm.test(\"Updated email has valid format\", function () {\r",
+											"    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+											"    pm.expect(jsonData.email).to.match(emailPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Updated Timestamp Changed =====\r",
+											"pm.test(\"updatedAt timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Other Fields Preserved =====\r",
+											"pm.test(\"Role is preserved\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"role\");\r",
+											"    pm.expect(jsonData.role).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Avatar Preserved =====\r",
+											"pm.test(\"Avatar is preserved\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"avatar\");\r",
+											"    pm.expect(jsonData.avatar).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// // ===== TEST 10: No Password Exposure =====\r",
+											"// pm.test(\"Password is not exposed\", function () {\r",
+											"//     pm.expect(jsonData).to.not.have.property(\"password\");\r",
+											"// });\r",
+											"\r",
+											"// Update environment with new values\r",
+											"pm.environment.set(\"updated_user_name\", jsonData.name);\r",
+											"pm.environment.set(\"updated_user_email\", jsonData.email);\r",
+											"pm.environment.unset(\"old_user_name\");\r",
+											"pm.environment.unset(\"old_user_email\");\r",
+											"\r",
+											"console.log(\"✓ User updated successfully\");\r",
+											"console.log(\"✓ New Name: \" + jsonData.name);\r",
+											"console.log(\"✓ New Email: \" + jsonData.email);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Updated Test User\",\r\n  \"email\": \"updated{{$timestamp}}@mail.com\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/{{created_user_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										"{{created_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET User by ID After Update",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const userId = pm.environment.get(\"created_user_id\");\r",
+											"\r",
+											"console.log(\"=== Verifying User Update ===\");\r",
+											"console.log(\"User ID: \" + userId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_user_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: User ID Matches =====\r",
+											"pm.test(\"User ID is correct\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Updated Name Persisted =====\r",
+											"pm.test(\"Updated name is persisted\", function () {\r",
+											"    const updatedName = pm.environment.get(\"updated_user_name\");\r",
+											"    pm.expect(jsonData.name).to.equal(updatedName);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Updated Email Persisted =====\r",
+											"pm.test(\"Updated email is persisted\", function () {\r",
+											"    const updatedEmail = pm.environment.get(\"updated_user_email\");\r",
+											"    pm.expect(jsonData.email).to.equal(updatedEmail);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Verify Update Consistency =====\r",
+											"pm.test(\"User data is consistent after update\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData).to.have.property(\"email\");\r",
+											"    pm.expect(jsonData).to.have.property(\"role\");\r",
+											"    pm.expect(jsonData).to.have.property(\"avatar\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Email Format Still Valid =====\r",
+											"pm.test(\"Email format is still valid\", function () {\r",
+											"    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+											"    pm.expect(jsonData.email).to.match(emailPattern);\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Update verification successful\");\r",
+											"console.log(\"✓ All changes persisted correctly\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/{{created_user_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										"{{created_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DELETE User",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const userId = pm.environment.get(\"created_user_id\");\r",
+											"\r",
+											"console.log(\"=== Deleting User ===\");\r",
+											"console.log(\"User ID to delete: \" + userId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deletion Confirmed =====\r",
+											"pm.test(\"Response confirms deletion (true)\", function () {\r",
+											"    pm.expect(jsonData).to.be.a(\"boolean\");\r",
+											"    pm.expect(jsonData).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Response Body Validation =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ User deleted successfully\");\r",
+											"console.log(\"✓ User ID: \" + pm.environment.get(\"created_user_id\"));\r",
+											"\r",
+											"// Keep the ID for verification in next request"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/{{created_user_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										"{{created_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Users After Delete",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Verifying User Deletion ===\");\r",
+											"console.log(\"Checking if deleted user is removed from list\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const deletedUserId = parseInt(pm.environment.get(\"created_user_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deleted User Not in List =====\r",
+											"pm.test(\"Deleted user is not in the list\", function () {\r",
+											"    const userExists = jsonData.some(user => user.id === deletedUserId);\r",
+											"    pm.expect(userExists).to.be.false;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: User Count Verification =====\r",
+											"pm.test(\"User count is valid\", function () {\r",
+											"    const currentCount = jsonData.length;\r",
+											"    console.log(\"Current user count: \" + currentCount);\r",
+											"    pm.expect(currentCount).to.be.a(\"number\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: List Still Contains Users =====\r",
+											"pm.test(\"User list still contains other users\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: All Remaining Users Valid =====\r",
+											"pm.test(\"All remaining users have required fields\", function () {\r",
+											"    jsonData.forEach(user => {\r",
+											"        pm.expect(user).to.have.property(\"id\");\r",
+											"        pm.expect(user).to.have.property(\"email\");\r",
+											"        pm.expect(user).to.have.property(\"name\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Deletion verified - user removed from list\");\r",
+											"\r",
+											"// Clean up environment variables\r",
+											"pm.environment.unset(\"created_user_id\");\r",
+											"pm.environment.unset(\"created_user_name\");\r",
+											"pm.environment.unset(\"created_user_email\");\r",
+											"pm.environment.unset(\"updated_user_name\");\r",
+											"pm.environment.unset(\"updated_user_email\");\r",
+											"pm.environment.unset(\"unique_email\");\r",
+											"pm.environment.unset(\"updated_email\");\r",
+											"pm.environment.unset(\"test_user_password\");\r",
+											"\r",
+											"console.log(\"✓ Environment variables cleaned up\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Negative Tests",
+					"item": [
+						{
+							"name": "POST Create with Invalid Data",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Invalid User ID ===\");\r",
+											"console.log(\"Using ID: 999999 (should not exist)\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// ===== TEST 1: Status Code is 400 =====\r",
+											"pm.test(\"Status code is 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Error Response Structure =====\r",
+											"pm.test(\"Response contains error information\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.have.property(\"message\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Error Message Present =====\r",
+											"pm.test(\"Error message is descriptive\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.message).to.be.a(\"array\");\r",
+											"    pm.expect(jsonData.message.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Error Indicates Not Found =====\r",
+											"pm.test(\"Error indicates user not found\", function () {\r",
+											"    const responseText = pm.response.text().toLowerCase();\r",
+											"    \r",
+											"    const hasNotFoundError = \r",
+											"        responseText.includes(\"not found\") ||\r",
+											"        responseText.includes(\"doesn't exist\") ||\r",
+											"        responseText.includes(\"does not exist\") ||\r",
+											"        responseText.includes(\"bad request\") ||\r",
+											"        responseText.includes(\"400\");\r",
+											"    \r",
+											"    pm.expect(hasNotFoundError).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Response Body Not Empty =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Invalid ID handled correctly with 404\");\r",
+											"console.log(\"✓ Error message: \" + pm.response.json().message);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\t\"name\": \"Hesham\",\r\n\t\"email\": \"hesham@gmail.com\",\r\n\t\"password\": \"123\",\r\n    \"avatar\": \"https://api.lorem.space/image/face?w=640&h=480\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET User with Invalid ID",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Testing Invalid User ID ===\");\r",
+											"console.log(\"Using ID: 999999 (should not exist)\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// ===== TEST 1: Status Code is 404 =====\r",
+											"pm.test(\"Status code is 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Error Response Structure =====\r",
+											"pm.test(\"Response contains error information\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.have.property(\"message\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Error Message Present =====\r",
+											"pm.test(\"Error message is descriptive\", function () {\r",
+											"    const jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.message).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.message.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Error Indicates Not Found =====\r",
+											"pm.test(\"Error indicates user not found\", function () {\r",
+											"    const responseText = pm.response.text().toLowerCase();\r",
+											"    \r",
+											"    const hasNotFoundError = \r",
+											"        responseText.includes(\"not found\") ||\r",
+											"        responseText.includes(\"doesn't exist\") ||\r",
+											"        responseText.includes(\"does not exist\") ||\r",
+											"        responseText.includes(\"entitynotfounderror\") ||\r",
+											"        responseText.includes(\"could not find\");\r",
+											"    \r",
+											"    pm.expect(hasNotFoundError).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Response Body Not Empty =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Invalid ID handled correctly with 404\");\r",
+											"console.log(\"✓ Error message: \" + pm.response.json().message);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/users/999999",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"users",
+										"999999"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "CRUD Operations",
+					"item": [
+						{
+							"name": "GET All Categories",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Fetching All Categories ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Array Contains Categories =====\r",
+											"pm.test(\"Array contains categories (not empty)\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Each Category Has Required Fields =====\r",
+											"pm.test(\"Each category has all required fields\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category).to.have.property(\"id\");\r",
+											"        pm.expect(category).to.have.property(\"name\");\r",
+											"        pm.expect(category).to.have.property(\"image\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: ID Validation =====\r",
+											"pm.test(\"All category IDs are numbers and positive\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category.id).to.be.a(\"number\");\r",
+											"        pm.expect(category.id).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Name Validation =====\r",
+											"pm.test(\"All category names are non-empty strings\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category.name).to.be.a(\"string\");\r",
+											"        pm.expect(category.name.length).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Image URL Validation =====\r",
+											"pm.test(\"All category images are valid URLs\", function () {\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category.image).to.be.a(\"string\");\r",
+											"        pm.expect(category.image).to.match(urlPattern);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Creation Date Present =====\r",
+											"pm.test(\"All categories have creation timestamps\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category).to.have.property(\"creationAt\");\r",
+											"        pm.expect(category.creationAt).to.be.a(\"string\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Update Date Present =====\r",
+											"pm.test(\"All categories have update timestamps\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category).to.have.property(\"updatedAt\");\r",
+											"        pm.expect(category.updatedAt).to.be.a(\"string\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 11: Name Uniqueness =====\r",
+											"pm.test(\"Category names are unique\", function () {\r",
+											"    const names = jsonData.map(cat => cat.name);\r",
+											"    const uniqueNames = [...new Set(names)];\r",
+											"    pm.expect(names.length).to.equal(uniqueNames.length);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 12: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save category data for reference\r",
+											"if (jsonData.length > 0) {\r",
+											"    pm.environment.set(\"first_category_id\", jsonData[0].id);\r",
+											"    pm.environment.set(\"total_categories_before_operations\", jsonData.length);\r",
+											"    console.log(\"✓ Total categories: \" + jsonData.length);\r",
+											"    console.log(\"✓ First category ID: \" + jsonData[0].id);\r",
+											"    console.log(\"✓ First category name: \" + jsonData[0].name);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create Category",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Creating New Category ===\");\r",
+											"console.log(\"Timestamp: \" + new Date().toISOString());\r",
+											"\r",
+											"// Generate unique category name\r",
+											"const timestamp = Date.now();\r",
+											"const uniqueName = \"Test Category \" + timestamp;\r",
+											"pm.environment.set(\"category_timestamp\", timestamp);\r",
+											"pm.environment.set(\"unique_category_name\", uniqueName);\r",
+											"\r",
+											"console.log(\"Unique category name: \" + uniqueName);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 201 Created\", function () {\r",
+											"    pm.response.to.have.status(201);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Category ID Generated =====\r",
+											"pm.test(\"Category ID is generated\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData.id).to.be.a(\"number\");\r",
+											"    pm.expect(jsonData.id).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Name is Set =====\r",
+											"pm.test(\"Category name is set correctly\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData.name).to.be.a(\"string\");\r",
+											"    pm.expect(jsonData.name).to.include(\"Test Category\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Image URL is Set =====\r",
+											"pm.test(\"Category image URL is set\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"image\");\r",
+											"    pm.expect(jsonData.image).to.be.a(\"string\");\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.image).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Creation Timestamp =====\r",
+											"pm.test(\"Creation timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+											"    pm.expect(jsonData.creationAt).to.be.a(\"string\");\r",
+											"    \r",
+											"    const date = new Date(jsonData.creationAt);\r",
+											"    pm.expect(date.toString()).to.not.equal(\"Invalid Date\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Update Timestamp =====\r",
+											"pm.test(\"Update timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Schema Validation =====\r",
+											"pm.test(\"Response schema is valid\", function () {\r",
+											"    const schema = {\r",
+											"        type: \"object\",\r",
+											"        required: [\"id\", \"name\", \"image\"],\r",
+											"        properties: {\r",
+											"            id: { type: \"number\" },\r",
+											"            name: { type: \"string\" },\r",
+											"            image: { type: \"string\" }\r",
+											"        }\r",
+											"    };\r",
+											"    pm.response.to.have.jsonSchema(schema);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: All Required Fields Present =====\r",
+											"pm.test(\"All required fields are present\", function () {\r",
+											"    pm.expect(jsonData).to.have.all.keys(\r",
+											"        \"id\", \"name\", \"slug\", \"image\", \"creationAt\", \"updatedAt\"\r",
+											"    );\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"// Save created category details\r",
+											"if (pm.response.code === 201 && jsonData.id) {\r",
+											"    pm.environment.set(\"created_category_id\", jsonData.id);\r",
+											"    pm.environment.set(\"created_category_name\", jsonData.name);\r",
+											"    console.log(\"✓ Category created successfully!\");\r",
+											"    console.log(\"✓ Category ID: \" + jsonData.id);\r",
+											"    console.log(\"✓ Category Name: \" + jsonData.name);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Test Category {{$timestamp}}\",\r\n  \"image\": \"https://api.lorem.space/image?w=640&h=480\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Category by ID",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const categoryId = pm.environment.get(\"created_category_id\");\r",
+											"\r",
+											"console.log(\"=== Fetching Created Category ===\");\r",
+											"console.log(\"Category ID: \" + categoryId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Category ID Matches =====\r",
+											"pm.test(\"Category ID matches the created category\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Category Name Verification =====\r",
+											"pm.test(\"Category name is correct\", function () {\r",
+											"    const expectedName = pm.environment.get(\"created_category_name\");\r",
+											"    pm.expect(jsonData.name).to.equal(expectedName);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: All Fields Present =====\r",
+											"pm.test(\"All category fields are present\", function () {\r",
+											"    pm.expect(jsonData).to.have.all.keys(\r",
+											"        \"id\", \"name\", \"slug\", \"image\", \"creationAt\", \"updatedAt\"\r",
+											"    );\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Response is Object =====\r",
+											"pm.test(\"Response is a single category object\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(jsonData).to.not.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Image URL Valid =====\r",
+											"pm.test(\"Image is a valid URL\", function () {\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.image).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Timestamps Valid =====\r",
+											"pm.test(\"Timestamps are valid dates\", function () {\r",
+											"    const creationDate = new Date(jsonData.creationAt);\r",
+											"    const updateDate = new Date(jsonData.updatedAt);\r",
+											"    \r",
+											"    pm.expect(creationDate.toString()).to.not.equal(\"Invalid Date\");\r",
+											"    pm.expect(updateDate.toString()).to.not.equal(\"Invalid Date\");\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Category retrieved successfully\");\r",
+											"console.log(\"✓ Category details verified\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/{{created_category_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										"{{created_category_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Update Category",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const categoryId = pm.environment.get(\"created_category_id\");\r",
+											"\r",
+											"console.log(\"=== Updating Category ===\");\r",
+											"console.log(\"Category ID: \" + categoryId);\r",
+											"\r",
+											"// Save old values for comparison\r",
+											"const oldName = pm.environment.get(\"created_category_name\");\r",
+											"pm.environment.set(\"old_category_name\", oldName);\r",
+											"\r",
+											"// Generate unique updated name\r",
+											"const timestamp = Date.now();\r",
+											"const updatedName = \"Updated Test Category \" + timestamp;\r",
+											"pm.environment.set(\"updated_category_name\", updatedName);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Category ID Unchanged =====\r",
+											"pm.test(\"Category ID remains the same\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Name Updated =====\r",
+											"pm.test(\"Category name was updated\", function () {\r",
+											"    const oldName = pm.environment.get(\"old_category_name\");\r",
+											"    pm.expect(jsonData.name).to.not.equal(oldName);\r",
+											"    pm.expect(jsonData.name).to.include(\"Updated Test Category\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Image URL Updated =====\r",
+											"pm.test(\"Image URL was updated\", function () {\r",
+											"    pm.expect(jsonData.image).to.be.a(\"string\");\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.image).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Updated Timestamp Changed =====\r",
+											"pm.test(\"updatedAt timestamp is present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"    pm.expect(jsonData.updatedAt).to.be.a(\"string\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: All Fields Present =====\r",
+											"pm.test(\"All fields are still present\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData).to.have.property(\"image\");\r",
+											"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Response Structure Valid =====\r",
+											"pm.test(\"Response structure is valid\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"object\");\r",
+											"    pm.expect(Object.keys(jsonData).length).to.equal(6);\r",
+											"});\r",
+											"\r",
+											"// Update environment with new values\r",
+											"pm.environment.set(\"updated_category_name\", jsonData.name);\r",
+											"pm.environment.unset(\"old_category_name\");\r",
+											"\r",
+											"console.log(\"✓ Category updated successfully\");\r",
+											"console.log(\"✓ New Name: \" + jsonData.name);\r",
+											"console.log(\"✓ New Image: \" + jsonData.image);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Updated Test Category {{$timestamp}}\",\r\n  \"image\": \"https://api.lorem.space/image?w=800&h=600\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/{{created_category_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										"{{created_category_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Category by ID After Update",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const categoryId = pm.environment.get(\"created_category_id\");\r",
+											"\r",
+											"console.log(\"=== Verifying Category Update ===\");\r",
+											"console.log(\"Category ID: \" + categoryId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedId = parseInt(pm.environment.get(\"created_category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Category ID Matches =====\r",
+											"pm.test(\"Category ID is correct\", function () {\r",
+											"    pm.expect(jsonData.id).to.equal(expectedId);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Updated Name Persisted =====\r",
+											"pm.test(\"Updated name is persisted\", function () {\r",
+											"    const updatedName = pm.environment.get(\"updated_category_name\");\r",
+											"    pm.expect(jsonData.name).to.equal(updatedName);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Verify Update Consistency =====\r",
+											"pm.test(\"Category data is consistent after update\", function () {\r",
+											"    pm.expect(jsonData).to.have.property(\"id\");\r",
+											"    pm.expect(jsonData).to.have.property(\"name\");\r",
+											"    pm.expect(jsonData).to.have.property(\"image\");\r",
+											"    pm.expect(jsonData).to.have.property(\"creationAt\");\r",
+											"    pm.expect(jsonData).to.have.property(\"updatedAt\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Image URL Still Valid =====\r",
+											"pm.test(\"Image URL is still valid\", function () {\r",
+											"    const urlPattern = /^https?:\\/\\/.+/;\r",
+											"    pm.expect(jsonData.image).to.match(urlPattern);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Name Format Valid =====\r",
+											"pm.test(\"Updated name contains expected text\", function () {\r",
+											"    pm.expect(jsonData.name).to.include(\"Updated Test Category\");\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Update verification successful\");\r",
+											"console.log(\"✓ All changes persisted correctly\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/{{created_category_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										"{{created_category_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DELETE Category",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const categoryId = pm.environment.get(\"created_category_id\");\r",
+											"\r",
+											"console.log(\"=== Deleting Category ===\");\r",
+											"console.log(\"Category ID to delete: \" + categoryId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 2000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deletion Confirmed =====\r",
+											"pm.test(\"Response confirms deletion (true)\", function () {\r",
+											"    pm.expect(jsonData).to.be.a(\"boolean\");\r",
+											"    pm.expect(jsonData).to.be.true;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Response Body Validation =====\r",
+											"pm.test(\"Response body is not empty\", function () {\r",
+											"    pm.expect(pm.response.text()).to.not.be.empty;\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Category deleted successfully\");\r",
+											"console.log(\"✓ Category ID: \" + pm.environment.get(\"created_category_id\"));\r",
+											"\r",
+											"// Keep the ID for verification in next request"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/{{created_category_id}}",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										"{{created_category_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Categories After Delete",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"console.log(\"=== Verifying Category Deletion ===\");\r",
+											"console.log(\"Checking if deleted category is removed from list\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const deletedCategoryId = parseInt(pm.environment.get(\"created_category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Deleted Category Not in List =====\r",
+											"pm.test(\"Deleted category is not in the list\", function () {\r",
+											"    const categoryExists = jsonData.some(category => category.id === deletedCategoryId);\r",
+											"    pm.expect(categoryExists).to.be.false;\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 4: Category Count Verification =====\r",
+											"pm.test(\"Category count is valid\", function () {\r",
+											"    const currentCount = jsonData.length;\r",
+											"    console.log(\"Current category count: \" + currentCount);\r",
+											"    pm.expect(currentCount).to.be.a(\"number\");\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: List Still Contains Categories =====\r",
+											"pm.test(\"Category list still contains other categories\", function () {\r",
+											"    pm.expect(jsonData.length).to.be.above(0);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: All Remaining Categories Valid =====\r",
+											"pm.test(\"All remaining categories have required fields\", function () {\r",
+											"    jsonData.forEach(category => {\r",
+											"        pm.expect(category).to.have.property(\"id\");\r",
+											"        pm.expect(category).to.have.property(\"name\");\r",
+											"        pm.expect(category).to.have.property(\"image\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Deletion verified - category removed from list\");\r",
+											"\r",
+											"// Clean up environment variables\r",
+											"pm.environment.unset(\"created_category_id\");\r",
+											"pm.environment.unset(\"created_category_name\");\r",
+											"pm.environment.unset(\"updated_category_name\");\r",
+											"pm.environment.unset(\"unique_category_name\");\r",
+											"pm.environment.unset(\"category_timestamp\");\r",
+											"\r",
+											"console.log(\"✓ Environment variables cleaned up\");"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Related Operations",
+					"item": [
+						{
+							"name": "GET Products by Category",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const categoryId = pm.environment.get(\"first_category_id\");\r",
+											"\r",
+											"console.log(\"=== Fetching Products by Category ===\");\r",
+											"console.log(\"Category ID: \" + categoryId);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();\r",
+											"const expectedCategoryId = parseInt(pm.environment.get(\"first_category_id\"));\r",
+											"\r",
+											"// ===== TEST 1: Status Code =====\r",
+											"pm.test(\"Status code is 200 OK\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 2: Response Time =====\r",
+											"pm.test(\"Response time is less than 3000ms\", function () {\r",
+											"    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 3: Response is Array =====\r",
+											"pm.test(\"Response is an array\", function () {\r",
+											"    pm.expect(jsonData).to.be.an(\"array\");\r",
+											"});\r",
+											"\r",
+											"\r",
+											"\r",
+											"// ===== TEST 4: All Products Belong to Category =====\r",
+											"pm.test(\"All products belong to the specified category\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.category).to.be.an(\"object\");\r",
+											"        pm.expect(product.category.id).to.equal(expectedCategoryId);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 5: Each Product Has Required Fields =====\r",
+											"pm.test(\"Each product has all required fields\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product).to.have.property(\"id\");\r",
+											"        pm.expect(product).to.have.property(\"title\");\r",
+											"        pm.expect(product).to.have.property(\"price\");\r",
+											"        pm.expect(product).to.have.property(\"description\");\r",
+											"        pm.expect(product).to.have.property(\"images\");\r",
+											"        pm.expect(product).to.have.property(\"category\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 6: Category Structure Validation =====\r",
+											"pm.test(\"All category objects have proper structure\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.category).to.have.property(\"id\");\r",
+											"        pm.expect(product.category).to.have.property(\"name\");\r",
+											"        pm.expect(product.category).to.have.property(\"image\");\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 7: Product IDs are Unique =====\r",
+											"pm.test(\"All product IDs are unique\", function () {\r",
+											"    const ids = jsonData.map(product => product.id);\r",
+											"    const uniqueIds = [...new Set(ids)];\r",
+											"    pm.expect(ids.length).to.equal(uniqueIds.length);\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 8: Price Validation =====\r",
+											"pm.test(\"All prices are valid numbers\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.price).to.be.a(\"number\");\r",
+											"        pm.expect(product.price).to.be.at.least(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 9: Images Array Validation =====\r",
+											"pm.test(\"All products have at least one image\", function () {\r",
+											"    jsonData.forEach(product => {\r",
+											"        pm.expect(product.images).to.be.an(\"array\");\r",
+											"        pm.expect(product.images.length).to.be.above(0);\r",
+											"    });\r",
+											"});\r",
+											"\r",
+											"// ===== TEST 10: Content-Type Header =====\r",
+											"pm.test(\"Content-Type is application/json\", function () {\r",
+											"    pm.response.to.have.header(\"Content-Type\");\r",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r",
+											"});\r",
+											"\r",
+											"console.log(\"✓ Products by category retrieved successfully\");\r",
+											"console.log(\"✓ Total products in category: \" + jsonData.length);\r",
+											"\r",
+											"if (jsonData.length > 0) {\r",
+											"    console.log(\"Category name: \" + jsonData[0].category.name);\r",
+											"}"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/api/v1/categories/{{first_category_id}}/products",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"categories",
+										"{{first_category_id}}",
+										"products"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
