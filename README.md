@@ -112,6 +112,9 @@ platzi-api-testing/
 │   ├── pom.xml
 │   ├── testng.xml
 │   └── README.md
+│
+├── docs/
+│   └── allure-report-screenshots/
 └── README.md
 ```
 
